@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<title>Simulation Lab Help Station</title>
+<style>
+  :root{
+    /* UTEP palette */
+    --miner-blue:#041E42;
+    --miner-blue-700:#0A2C5C;
+    --miner-orange:#FF8200;
+    --help-red:#A6192E;      /* 7.4:1 on white */
+    --help-red-dark:#7E1223;
+    --ink:#14181F;
+    --ink-soft:#3B4454;
+    --paper:#F6F7F9;
+    --card:#FFFFFF;
+    --line:#C9CED8;
+    --focus:#FF8200;
+    --ok:#1B5E20;
+    --radius:14px;
+    --tap:3rem;              /* 48px minimum target */
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
+    font-size:1.0625rem; line-height:1.6;
+    min-height:100vh; display:flex; flex-direction:column;
+  }
+  /* ---------- Accessibility primitives ---------- */
+  .sr-only{
+    position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;
+    overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;
+  }
+  .skip{
+    position:absolute;left:0;top:-100%;z-index:100;background:var(--miner-orange);
+    color:#000;font-weight:700;padding:.75rem 1.25rem;text-decoration:none;
+  }
+  .skip:focus{top:0}
+  :where(a,button,input,select,textarea,summary,[tabindex]):focus-visible{
+    outline:4px solid var(--focus); outline-offset:3px; border-radius:6px;
+  }
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
+  }
+  @media (prefers-contrast:more){
+    :root{--line:#000;--ink-soft:#000}
+  }
+  /* ---------- Layout ---------- */
+  header.site{
+    background:var(--miner-blue); color:#fff;
+    border-bottom:6px solid var(--miner-orange);
+    padding:.85rem clamp(1rem,4vw,2rem);
+    display:flex; gap:1rem; align-items:center; flex-wrap:wrap;
+  }
+  .brand{display:flex;align-items:center;gap:.75rem;min-width:0}
+  .pick{
+    width:2.5rem;height:2.5rem;flex:0 0 auto;border-radius:8px;
+    background:var(--miner-orange);color:#1a1004;
+    display:grid;place-items:center;font-weight:800;font-size:1.1rem;letter-spacing:-.02em;
+  }
+  .brand h1{font-size:1.125rem;margin:0;line-height:1.25;font-weight:700}
+  .brand p{margin:0;font-size:.875rem;color:#DCE3EE}
+  header.site .spacer{flex:1 1 auto}
+  .main{flex:1 1 auto;padding:clamp(1rem,4vw,2.5rem);width:100%;max-width:62rem;margin-inline:auto}
+  footer.site{
+    background:var(--miner-blue-700);color:#E6EBF3;font-size:.875rem;
+    padding:1rem clamp(1rem,4vw,2rem);text-align:center;
+  }
+  /* ---------- Buttons ---------- */
+  .btn{
+    font:inherit;font-weight:650;cursor:pointer;border-radius:10px;
+    min-height:var(--tap);padding:.65rem 1.1rem;border:2px solid transparent;
+    display:inline-flex;align-items:center;justify-content:center;gap:.5rem;
+  }
+  .btn-light{background:#fff;color:var(--miner-blue);border-color:#fff}
+  .btn-light:hover{background:#EDF1F7}
+  .btn-ghost{background:transparent;color:#fff;border-color:#9FB2CC}
+  .btn-ghost:hover{background:#0B2F61}
+  .btn-primary{background:var(--miner-blue);color:#fff;border-color:var(--miner-blue)}
+  .btn-primary:hover{background:#082a5a}
+  .btn-secondary{background:#fff;color:var(--miner-blue);border-color:var(--miner-blue)}
+  .btn-secondary:hover{background:#EDF1F7}
+  .btn-danger{background:#fff;color:var(--help-red-dark);border-color:var(--help-red-dark)}
+  .btn-danger:hover{background:#FBEEF0}
+  .btn-sm{min-height:2.5rem;padding:.4rem .75rem;font-size:.9375rem}
+  /* ---------- Student HELP screen ---------- */
+  .help-screen{text-align:center;display:grid;gap:1.5rem;place-content:center;min-height:60vh}
+  .help-screen h2{font-size:clamp(1.5rem,4vw,2.25rem);margin:0;line-height:1.2}
+  .help-screen .lede{margin:0 auto;max-width:34rem;color:var(--ink-soft);font-size:1.0625rem}
+  .help-btn{
+    display:block;width:min(26rem,100%);margin:0 auto;
+    background:var(--help-red);color:#fff;border:4px solid var(--help-red-dark);
+    border-radius:24px;cursor:pointer;font:inherit;font-weight:800;
+    font-size:clamp(2.25rem,8vw,3.5rem);letter-spacing:.02em;
+    padding:clamp(1.5rem,6vw,2.75rem) 1rem;
+    box-shadow:0 6px 0 var(--help-red-dark);
+    transition:transform .12s ease, box-shadow .12s ease;
+    touch-action:manipulation;
+  }
+  .help-btn .sub{display:block;font-size:1rem;font-weight:600;letter-spacing:0;margin-top:.5rem;opacity:.95}
+  .help-btn:hover{background:#B81B33}
+  .help-btn:active{transform:translateY(4px);box-shadow:0 2px 0 var(--help-red-dark)}
+  /* ---------- Topic menu ---------- */
+  .page-head{display:flex;gap:1rem;align-items:flex-start;flex-wrap:wrap;margin-bottom:1.25rem}
+  .page-head h2{margin:0;font-size:clamp(1.375rem,3.5vw,1.75rem)}
+  .page-head p{margin:.25rem 0 0;color:var(--ink-soft)}
+  .toolbar{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center;margin:0 0 1.25rem}
+  .search{flex:1 1 16rem;min-width:12rem}
+  .search label{display:block;font-weight:650;margin-bottom:.3rem;font-size:.9375rem}
+  .search input{
+    font:inherit;width:100%;min-height:var(--tap);padding:.6rem .8rem;
+    border:2px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);
+  }
+  .count{color:var(--ink-soft);font-size:.9375rem}
+  .topic{
+    background:var(--card);border:2px solid var(--line);border-radius:var(--radius);
+    margin-bottom:.9rem;overflow:hidden;
+  }
+  .topic-head{display:flex;align-items:stretch;gap:0}
+  .acc-btn{
+    flex:1 1 auto;font:inherit;font-weight:700;font-size:1.0625rem;text-align:left;
+    background:#fff;color:var(--miner-blue);border:0;cursor:pointer;
+    min-height:var(--tap);padding:1rem 1.1rem;display:flex;align-items:center;gap:.85rem;
+  }
+  .acc-btn:hover{background:#EEF2F8}
+  .acc-btn .chev{
+    flex:0 0 auto;width:1.5rem;height:1.5rem;color:var(--miner-orange);
+    transition:transform .15s ease;
+  }
+  .acc-btn[aria-expanded="true"]{background:#EEF2F8}
+  .acc-btn[aria-expanded="true"] .chev{transform:rotate(90deg)}
+  .acc-btn .t-title{flex:1 1 auto}
+  .acc-btn .t-count{
+    flex:0 0 auto;font-size:.8125rem;font-weight:700;color:#2A3648;
+    background:#E3E8F0;border:1px solid var(--line);border-radius:999px;padding:.15rem .6rem;
+  }
+  .topic-panel{padding:0 1.1rem 1.1rem;border-top:2px solid var(--line)}
+  .topic-blurb{margin:.9rem 0 .25rem;color:var(--ink-soft)}
+  .entry{border-top:1px solid var(--line);padding:.9rem 0}
+  .entry:first-of-type{border-top:0}
+  .entry h4{margin:0 0 .35rem;font-size:1rem;color:var(--miner-blue)}
+  .entry .answer{margin:0;white-space:pre-wrap}
+  .entry .answer a{color:#0A3D91}
+  .empty{
+    background:#fff;border:2px dashed var(--line);border-radius:var(--radius);
+    padding:1.5rem;text-align:center;color:var(--ink-soft);
+  }
+  .no-results{background:#FFF6E8;border:2px solid var(--miner-orange);border-radius:var(--radius);padding:1rem 1.25rem}
+  /* ---------- Admin ---------- */
+  .admin-bar{
+    background:#FFF6E8;border:2px solid var(--miner-orange);border-radius:var(--radius);
+    padding:.85rem 1rem;margin-bottom:1.25rem;display:flex;gap:.6rem;flex-wrap:wrap;align-items:center;
+  }
+  .admin-bar strong{color:#6B3600}
+  .admin-bar .spacer{flex:1 1 auto}
+  .edit-row{display:flex;gap:.5rem;flex-wrap:wrap;padding:.75rem 0 .25rem;border-top:1px dashed var(--line);margin-top:.75rem}
+  .entry-tools{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.6rem}
+  .topic-head .t-tools{display:flex;gap:.35rem;align-items:center;padding:.5rem .6rem;border-left:2px solid var(--line);background:#FAFBFD}
+  .icon-btn{
+    font:inherit;min-width:2.5rem;min-height:2.5rem;border-radius:8px;cursor:pointer;
+    background:#fff;border:2px solid var(--miner-blue);color:var(--miner-blue);
+    display:grid;place-items:center;font-weight:800;
+  }
+  .icon-btn:hover{background:#EDF1F7}
+  .icon-btn[disabled]{opacity:.4;cursor:not-allowed}
+  dialog{
+    border:0;border-radius:var(--radius);padding:0;max-width:min(36rem,92vw);width:100%;
+    box-shadow:0 18px 50px rgba(4,30,66,.35);color:var(--ink);
+  }
+  dialog::backdrop{background:rgba(4,30,66,.6)}
+  .dlg-head{background:var(--miner-blue);color:#fff;padding:1rem 1.25rem;border-bottom:5px solid var(--miner-orange)}
+  .dlg-head h2{margin:0;font-size:1.125rem}
+  .dlg-body{padding:1.25rem;display:grid;gap:1rem}
+  .dlg-foot{padding:0 1.25rem 1.25rem;display:flex;gap:.6rem;flex-wrap:wrap;justify-content:flex-end}
+  .field label{display:block;font-weight:650;margin-bottom:.3rem}
+  .field .hint{font-size:.875rem;color:var(--ink-soft);margin:.25rem 0 0}
+  .field input,.field textarea{
+    font:inherit;width:100%;padding:.6rem .8rem;min-height:var(--tap);
+    border:2px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);
+  }
+  .field textarea{min-height:9rem;resize:vertical;line-height:1.5}
+  .err{color:#7E1223;font-weight:650;margin:0}
+  .toast{
+    position:fixed;left:50%;transform:translateX(-50%);bottom:1.25rem;z-index:90;
+    background:var(--miner-blue);color:#fff;border:2px solid var(--miner-orange);
+    border-radius:999px;padding:.7rem 1.25rem;font-weight:650;box-shadow:0 8px 24px rgba(0,0,0,.25);
+    max-width:90vw;text-align:center;
+  }
+  .toast[hidden]{display:none}
+  /* ---------- Print (post it on the wall) ---------- */
+  @media print{
+    header.site,footer.site,.toolbar,.admin-bar,.edit-row,.entry-tools,.t-tools,.back-row,.help-screen{display:none!important}
+    body{background:#fff}
+    .topic,.topic-panel{border-color:#000}
+    .topic-panel[hidden]{display:block!important}
+    .acc-btn .chev{display:none}
+  }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to main content</a>
+
+<header class="site">
+  <div class="brand">
+    <span class="pick" aria-hidden="true">UTEP</span>
+    <div>
+      <h1>Simulation Lab Help Station</h1>
+      <p id="brandSub">Student self-help &amp; staff knowledge base</p>
+    </div>
+  </div>
+  <div class="spacer"></div>
+  <button type="button" class="btn btn-ghost btn-sm" id="staffBtn">Staff login</button>
+  <button type="button" class="btn btn-ghost btn-sm" id="homeBtn" hidden>Home</button>
+</header>
+
+<main class="main" id="main">
+
+  <!-- ============ VIEW 1: HELP BUTTON ============ -->
+  <section id="viewHelp" aria-labelledby="helpHeading">
+    <div class="help-screen">
+      <h2 id="helpHeading">Need a hand in the lab?</h2>
+      <p class="lede">Tap the button below to see answers to the most common questions about this lab, the equipment, and what to do next.</p>
+      <button type="button" class="help-btn" id="helpBtn">
+        HELP
+        <span class="sub">Tap or click for answers</span>
+      </button>
+      <p class="lede">If this is an emergency, do not use this screen &mdash; tell lab staff right away or call campus police at 915-747-5611.</p>
+    </div>
+  </section>
+
+  <!-- ============ VIEW 2: TOPIC MENU ============ -->
+  <section id="viewMenu" aria-labelledby="menuHeading" hidden>
+    <div class="back-row" style="margin-bottom:1rem">
+      <button type="button" class="btn btn-secondary" id="backBtn">&#8592; Back to Help button</button>
+    </div>
+
+    <div class="page-head">
+      <div>
+        <h2 id="menuHeading">Help topics</h2>
+        <p>Choose a topic to open it. Each topic lists common questions with the answer underneath.</p>
+      </div>
+    </div>
+
+    <div id="adminBar" class="admin-bar" hidden>
+      <strong>Staff edit mode is on.</strong>
+      <span class="spacer"></span>
+      <button type="button" class="btn btn-primary btn-sm" id="addTopicBtn">+ Add topic</button>
+      <button type="button" class="btn btn-secondary btn-sm" id="exportBtn">Export backup</button>
+      <button type="button" class="btn btn-secondary btn-sm" id="importBtn">Import backup</button>
+      <button type="button" class="btn btn-secondary btn-sm" id="passBtn">Change passcode</button>
+      <button type="button" class="btn btn-secondary btn-sm" id="printBtn">Print all</button>
+      <button type="button" class="btn btn-danger btn-sm" id="lockBtn">Lock edit mode</button>
+      <input type="file" id="importFile" accept=".json,application/json" class="sr-only" tabindex="-1" aria-hidden="true">
+    </div>
+
+    <div class="toolbar">
+      <div class="search">
+        <label for="searchInput">Search the topics</label>
+        <input type="search" id="searchInput" placeholder="e.g. projector, manikin, login" autocomplete="off" spellcheck="false">
+      </div>
+      <p class="count" id="resultCount" role="status" aria-live="polite"></p>
+    </div>
+
+    <div id="topicList"></div>
+  </section>
+</main>
+
+<footer class="site">
+  <p style="margin:0">The University of Texas at El Paso &middot; Simulation Lab &middot; Staff: <a href="#" id="footStaff" style="color:#FFC27A">log in to edit these topics</a></p>
+</footer>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<!-- ============ DIALOGS ============ -->
+<dialog id="dlgLogin" aria-labelledby="dlgLoginTitle">
+  <form method="dialog" id="formLogin">
+    <div class="dlg-head"><h2 id="dlgLoginTitle">Staff login</h2></div>
+    <div class="dlg-body">
+      <div class="field">
+        <label for="loginPass">Staff passcode</label>
+        <input type="password" id="loginPass" autocomplete="current-password" required>
+        <p class="hint">Only lab staff should use this. Students do not need to log in.</p>
+      </div>
+      <p class="err" id="loginErr" role="alert" hidden>That passcode did not match. Try again.</p>
+    </div>
+    <div class="dlg-foot">
+      <button type="button" class="btn btn-secondary" data-close>Cancel</button>
+      <button type="submit" class="btn btn-primary">Unlock edit mode</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlgTopic" aria-labelledby="dlgTopicTitle">
+  <form method="dialog" id="formTopic">
+    <div class="dlg-head"><h2 id="dlgTopicTitle">Add topic</h2></div>
+    <div class="dlg-body">
+      <div class="field">
+        <label for="topicTitle">Topic name</label>
+        <input type="text" id="topicTitle" required maxlength="90">
+        <p class="hint">This is the label on the dropdown. Example: &ldquo;Projectors and room AV&rdquo;.</p>
+      </div>
+      <div class="field">
+        <label for="topicBlurb">Short description (optional)</label>
+        <textarea id="topicBlurb" rows="3" style="min-height:5rem" maxlength="300"></textarea>
+        <p class="hint">One line explaining what this topic covers. Shows at the top when the topic is opened.</p>
+      </div>
+      <p class="err" id="topicErr" role="alert" hidden></p>
+    </div>
+    <div class="dlg-foot">
+      <button type="button" class="btn btn-secondary" data-close>Cancel</button>
+      <button type="submit" class="btn btn-primary" id="topicSave">Save topic</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlgEntry" aria-labelledby="dlgEntryTitle">
+  <form method="dialog" id="formEntry">
+    <div class="dlg-head"><h2 id="dlgEntryTitle">Add question</h2></div>
+    <div class="dlg-body">
+      <div class="field">
+        <label for="entryQ">Question or heading</label>
+        <input type="text" id="entryQ" required maxlength="140">
+      </div>
+      <div class="field">
+        <label for="entryA">Answer</label>
+        <textarea id="entryA" rows="7" required></textarea>
+        <p class="hint">Plain text. Line breaks are kept, so you can write short numbered steps.</p>
+      </div>
+      <p class="err" id="entryErr" role="alert" hidden></p>
+    </div>
+    <div class="dlg-foot">
+      <button type="button" class="btn btn-secondary" data-close>Cancel</button>
+      <button type="submit" class="btn btn-primary" id="entrySave">Save answer</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlgPass" aria-labelledby="dlgPassTitle">
+  <form method="dialog" id="formPass">
+    <div class="dlg-head"><h2 id="dlgPassTitle">Change staff passcode</h2></div>
+    <div class="dlg-body">
+      <div class="field">
+        <label for="passNew">New passcode</label>
+        <input type="password" id="passNew" required minlength="4" autocomplete="new-password">
+      </div>
+      <div class="field">
+        <label for="passConfirm">Repeat new passcode</label>
+        <input type="password" id="passConfirm" required minlength="4" autocomplete="new-password">
+      </div>
+      <p class="hint" style="margin:0">This passcode is stored on this computer only. It keeps students out of edit mode; it is not strong security.</p>
+      <p class="err" id="passErr" role="alert" hidden></p>
+    </div>
+    <div class="dlg-foot">
+      <button type="button" class="btn btn-secondary" data-close>Cancel</button>
+      <button type="submit" class="btn btn-primary">Save passcode</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlgConfirm" aria-labelledby="dlgConfirmTitle">
+  <form method="dialog" id="formConfirm">
+    <div class="dlg-head"><h2 id="dlgConfirmTitle">Delete</h2></div>
+    <div class="dlg-body"><p id="confirmMsg" style="margin:0"></p></div>
+    <div class="dlg-foot">
+      <button type="button" class="btn btn-secondary" data-close>Cancel</button>
+      <button type="submit" class="btn btn-danger" id="confirmYes">Delete</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+(function(){
+  "use strict";
+
+  /* =========================================================
+     STORAGE
+     ========================================================= */
+  var KEY = "simlabHelp.v1";
+  var DEFAULT_PASS = "minerlab";   // <-- change this on first login
+
+  function hash(s){                 // convenience lock only, not security
+    var h = 5381, i;
+    for(i=0;i<s.length;i++){ h = ((h<<5)+h) ^ s.charCodeAt(i); }
+    return (h>>>0).toString(36);
+  }
+  function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+  var SEED = {
+    pass: hash(DEFAULT_PASS),
+    topics: [
+      { id: uid(), title: "Getting started in the lab", blurb: "What to do when you walk in for a practice session or a sim day.",
+        entries: [
+          { id: uid(), q: "Where do I go when I arrive?", a: "1. Check the board or screen for your room assignment.\n2. Store bags and coats in the designated area.\n3. Wash or sanitize your hands before touching any equipment.\n4. Wait for your instructor or lab staff to start the briefing." },
+          { id: uid(), q: "What should I bring?", a: "Your badge or student ID, a stethoscope if your course requires one, closed-toe shoes, and your skills checklist. Lab supplies are provided — do not bring supplies from home." },
+          { id: uid(), q: "Can I eat or drink in the lab?", a: "No food or open drinks in any lab or testing room. Capped water bottles are allowed in the hallway and seating areas only." }
+        ]},
+      { id: uid(), title: "Computers, logins and iPads", blurb: "Trouble signing in or with the room tablets.",
+        entries: [
+          { id: uid(), q: "The computer will not take my login.", a: "Use your UTEP username and password — no @utep.edu on the username line. If it still fails, check that Caps Lock is off, then tell lab staff so they can log the station in for you. Do not use another student's account." },
+          { id: uid(), q: "The iPad screen is frozen or asleep.", a: "Press and hold the top button and either volume button until the power slider appears, slide to power off, wait 10 seconds, then power back on. If it stays frozen or asks for a passcode, bring it to lab staff — do not try to reset it." },
+          { id: uid(), q: "The charting or simulation app will not open.", a: "Close the app fully and reopen it once. If it still will not open, note the room and station number and report it to lab staff so it can be fixed for the next group." }
+        ]},
+      { id: uid(), title: "Manikins and simulators", blurb: "Nursing Anne, SimMan Essential, SUSIE S2400 and HAL S5301.",
+        entries: [
+          { id: uid(), q: "The manikin is not responding.", a: "Stop and tell lab staff. Do not open panels, unplug cables or press buttons on the manikin itself — some connections are fragile and some simulators are run from the control room." },
+          { id: uid(), q: "Which manikin am I working with?", a: "The lab runs Nursing Anne (Laerdal), SimMan Essential (Laerdal), SUSIE S2400 (Gaumard) and HAL S5301 (Gaumard). Each bay is labeled; ask staff if the label is missing." },
+          { id: uid(), q: "Can I use lotion, pen or tape on a manikin?", a: "No. Ink, lotion, alcohol and adhesives stain or damage the skin permanently. Use only the supplies lab staff hand out for that scenario." }
+        ]},
+      { id: uid(), title: "Projectors and room AV", blurb: "Screens, projectors, cameras and room audio.",
+        entries: [
+          { id: uid(), q: "Nothing is showing on the projector or display.", a: "1. Confirm the display is powered on.\n2. Make sure the computer is awake and logged in.\n3. Press the Windows key and P, then choose Duplicate.\n4. If it is still blank, report the room number to lab staff — do not unplug cables behind the equipment." },
+          { id: uid(), q: "There is no sound.", a: "Check the volume on the computer and the speaker or display volume. Then check that the correct output device is selected in the sound settings. If it is still silent, report it with the room number." }
+        ]},
+      { id: uid(), title: "Supplies, gloves and PPE", blurb: "Where to find what you need and what to do when something runs out.",
+        entries: [
+          { id: uid(), q: "What glove size do I need?", a: "Use the glove-sizing station on the lab display to measure your hand, then take that size from the box. If your size is out, tell lab staff rather than taking the next size up." },
+          { id: uid(), q: "We are out of a supply.", a: "Tell lab staff right away with the room number and the item. Do not take supplies from another room or from storage carts." }
+        ]},
+      { id: uid(), title: "Safety and emergencies", blurb: "What counts as an emergency and who to contact.",
+        entries: [
+          { id: uid(), q: "Someone is hurt or feels unwell.", a: "Stop the activity and get lab staff or your instructor immediately. For a medical emergency call 911, then notify UTEP Police at 915-747-5611 so they can direct responders to the building and room." },
+          { id: uid(), q: "There is a needle-stick or a spill.", a: "Stop, tell staff immediately, and do not clean it up yourself. Staff will follow the lab's exposure and spill procedure and complete the required report." },
+          { id: uid(), q: "The fire alarm goes off.", a: "Leave the equipment where it is, follow your instructor or staff to the nearest marked exit, and meet at the designated assembly point. Do not use elevators and do not re-enter until staff clear it." }
+        ]},
+      { id: uid(), title: "Recording, privacy and conduct", blurb: "Cameras, phones and what happens in the lab.",
+        entries: [
+          { id: uid(), q: "Are sessions recorded?", a: "Some sessions are recorded for debriefing and course assessment. Your instructor will tell you when recording is on. Recordings stay within the course — they are not posted publicly." },
+          { id: uid(), q: "Can I take photos or video in the lab?", a: "No photos, video or audio by students in the lab or testing rooms. It protects classmates, standardized patients and exam content. Ask your instructor if you need an image for an assignment." }
+        ]}
+    ]
+  };
+
+  var state = load();
+  var unlocked = false;
+  var editingTopicId = null, editingEntry = null, confirmAction = null;
+  var filter = "";
+
+  function load(){
+    try{
+      var raw = localStorage.getItem(KEY);
+      if(!raw) return clone(SEED);
+      var d = JSON.parse(raw);
+      if(!d || !Array.isArray(d.topics)) return clone(SEED);
+      if(!d.pass) d.pass = hash(DEFAULT_PASS);
+      d.topics.forEach(function(t){
+        if(!t.id) t.id = uid();
+        if(!Array.isArray(t.entries)) t.entries = [];
+        t.entries.forEach(function(e){ if(!e.id) e.id = uid(); });
+      });
+      return d;
+    }catch(err){ return clone(SEED); }
+  }
+  function save(){
+    try{ localStorage.setItem(KEY, JSON.stringify(state)); }
+    catch(err){ toast("Could not save on this computer. Export a backup instead."); }
+  }
+  function clone(o){ return JSON.parse(JSON.stringify(o)); }
+
+  /* =========================================================
+     SMALL HELPERS
+     ========================================================= */
+  var $ = function(id){ return document.getElementById(id); };
+  var toastTimer = null;
+  function toast(msg){
+    var t = $("toast");
+    t.textContent = msg; t.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ t.hidden = true; }, 4000);
+  }
+  function openDlg(dlg, focusEl){
+    if(typeof dlg.showModal === "function"){ dlg.showModal(); }
+    else { dlg.setAttribute("open",""); }
+    if(focusEl) setTimeout(function(){ focusEl.focus(); focusEl.select && focusEl.select(); }, 30);
+  }
+  function closeDlg(dlg){
+    if(typeof dlg.close === "function" && dlg.open){ dlg.close(); }
+    else { dlg.removeAttribute("open"); }
+  }
+  document.addEventListener("click", function(e){
+    var b = e.target.closest("[data-close]");
+    if(b){ var d = b.closest("dialog"); if(d) closeDlg(d); }
+  });
+
+  /* =========================================================
+     VIEW SWITCHING
+     ========================================================= */
+  function showHelp(){
+    $("viewHelp").hidden = false;
+    $("viewMenu").hidden = true;
+    $("homeBtn").hidden = true;
+    $("helpBtn").focus();
+  }
+  function showMenu(announce){
+    $("viewHelp").hidden = true;
+    $("viewMenu").hidden = false;
+    $("homeBtn").hidden = false;
+    render();
+    $("menuHeading").setAttribute("tabindex","-1");
+    $("menuHeading").focus();
+    if(announce) toast(announce);
+  }
+
+  /* =========================================================
+     RENDER
+     ========================================================= */
+  function matches(t){
+    if(!filter) return true;
+    var f = filter.toLowerCase();
+    if(t.title.toLowerCase().indexOf(f) > -1) return true;
+    if((t.blurb||"").toLowerCase().indexOf(f) > -1) return true;
+    return t.entries.some(function(e){
+      return (e.q+" "+e.a).toLowerCase().indexOf(f) > -1;
+    });
+  }
+
+  function render(){
+    var list = $("topicList");
+    var open = {};
+    Array.prototype.forEach.call(list.querySelectorAll('.acc-btn[aria-expanded="true"]'), function(b){
+      open[b.dataset.topic] = true;
+    });
+    list.textContent = "";
+
+    var shown = state.topics.filter(matches);
+
+    $("resultCount").textContent = filter
+      ? shown.length + " of " + state.topics.length + " topics match “" + filter + "”"
+      : state.topics.length + (state.topics.length === 1 ? " topic" : " topics") + " available";
+
+    if(!state.topics.length){
+      var em = document.createElement("div");
+      em.className = "empty";
+      em.textContent = unlocked
+        ? "No topics yet. Choose “+ Add topic” to create the first one."
+        : "No help topics have been added yet. Please ask lab staff.";
+      list.appendChild(em);
+      return;
+    }
+    if(!shown.length){
+      var nr = document.createElement("div");
+      nr.className = "no-results";
+      nr.innerHTML = "<p style=\"margin:0\"><strong>No topics match that search.</strong> Try a shorter word, or clear the search box to see every topic. If you still cannot find it, ask lab staff.</p>";
+      list.appendChild(nr);
+      return;
+    }
+
+    shown.forEach(function(t){
+      var idx = state.topics.indexOf(t);
+      var panelId = "panel-" + t.id, btnId = "btn-" + t.id;
+
+      var wrap = document.createElement("section");
+      wrap.className = "topic";
+
+      var head = document.createElement("div");
+      head.className = "topic-head";
+
+      var btn = document.createElement("button");
+      btn.type = "button"; btn.className = "acc-btn"; btn.id = btnId;
+      btn.setAttribute("aria-expanded", open[t.id] ? "true" : "false");
+      btn.setAttribute("aria-controls", panelId);
+      btn.dataset.topic = t.id;
+      btn.innerHTML =
+        '<svg class="chev" viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
+        '<path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+        '<span class="t-title"></span>' +
+        '<span class="t-count"></span>';
+      btn.querySelector(".t-title").textContent = t.title;
+      btn.querySelector(".t-count").textContent =
+        t.entries.length + (t.entries.length === 1 ? " answer" : " answers");
+      head.appendChild(btn);
+
+      if(unlocked){
+        var tools = document.createElement("div");
+        tools.className = "t-tools";
+        tools.appendChild(iconBtn("↑", "Move topic up: " + t.title, idx === 0, function(){ moveTopic(idx,-1); }));
+        tools.appendChild(iconBtn("↓", "Move topic down: " + t.title, idx === state.topics.length-1, function(){ moveTopic(idx,1); }));
+        head.appendChild(tools);
+      }
+      wrap.appendChild(head);
+
+      var panel = document.createElement("div");
+      panel.className = "topic-panel"; panel.id = panelId;
+      panel.setAttribute("role","region");
+      panel.setAttribute("aria-labelledby", btnId);
+      panel.hidden = !open[t.id];
+
+      if(t.blurb){
+        var bl = document.createElement("p");
+        bl.className = "topic-blurb"; bl.textContent = t.blurb;
+        panel.appendChild(bl);
+      }
+
+      if(!t.entries.length){
+        var noEnt = document.createElement("p");
+        noEnt.className = "topic-blurb";
+        noEnt.textContent = unlocked ? "No answers in this topic yet." : "Nothing here yet — please ask lab staff.";
+        panel.appendChild(noEnt);
+      }
+
+      t.entries.forEach(function(e, ei){
+        var art = document.createElement("article");
+        art.className = "entry";
+        var h4 = document.createElement("h4"); h4.textContent = e.q;
+        var p = document.createElement("p"); p.className = "answer"; p.textContent = e.a;
+        art.appendChild(h4); art.appendChild(p);
+
+        if(unlocked){
+          var et = document.createElement("div");
+          et.className = "entry-tools";
+          et.appendChild(textBtn("Edit", "btn btn-secondary btn-sm", "Edit answer: " + e.q, function(){ openEntry(t.id, e); }));
+          et.appendChild(textBtn("Delete", "btn btn-danger btn-sm", "Delete answer: " + e.q, function(){
+            askConfirm("Delete the answer “" + e.q + "”? This cannot be undone.", function(){
+              t.entries = t.entries.filter(function(x){ return x.id !== e.id; });
+              save(); render(); toast("Answer deleted.");
+            });
+          }));
+          et.appendChild(iconBtn("↑","Move answer up: " + e.q, ei === 0, function(){ moveEntry(t,ei,-1); }));
+          et.appendChild(iconBtn("↓","Move answer down: " + e.q, ei === t.entries.length-1, function(){ moveEntry(t,ei,1); }));
+          art.appendChild(et);
+        }
+        panel.appendChild(art);
+      });
+
+      if(unlocked){
+        var row = document.createElement("div");
+        row.className = "edit-row";
+        row.appendChild(textBtn("+ Add answer to this topic", "btn btn-primary btn-sm", "Add an answer to " + t.title, function(){ openEntry(t.id, null); }));
+        row.appendChild(textBtn("Rename topic", "btn btn-secondary btn-sm", "Rename topic " + t.title, function(){ openTopic(t); }));
+        row.appendChild(textBtn("Delete topic", "btn btn-danger btn-sm", "Delete topic " + t.title, function(){
+          askConfirm("Delete the topic “" + t.title + "” and all " + t.entries.length + " answers in it? This cannot be undone.", function(){
+            state.topics = state.topics.filter(function(x){ return x.id !== t.id; });
+            save(); render(); toast("Topic deleted.");
+          });
+        }));
+        panel.appendChild(row);
+      }
+
+      wrap.appendChild(panel);
+      list.appendChild(wrap);
+    });
+  }
+
+  function iconBtn(glyph, label, disabled, fn){
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "icon-btn";
+    b.innerHTML = '<span aria-hidden="true">' + glyph + '</span>';
+    b.setAttribute("aria-label", label);
+    if(disabled) b.disabled = true;
+    b.addEventListener("click", fn);
+    return b;
+  }
+  function textBtn(text, cls, label, fn){
+    var b = document.createElement("button");
+    b.type = "button"; b.className = cls; b.textContent = text;
+    if(label) b.setAttribute("aria-label", label);
+    b.addEventListener("click", fn);
+    return b;
+  }
+
+  /* =========================================================
+     ACCORDION BEHAVIOUR (delegated)
+     ========================================================= */
+  $("topicList").addEventListener("click", function(e){
+    var b = e.target.closest(".acc-btn");
+    if(!b) return;
+    var expanded = b.getAttribute("aria-expanded") === "true";
+    b.setAttribute("aria-expanded", expanded ? "false" : "true");
+    var panel = document.getElementById(b.getAttribute("aria-controls"));
+    if(panel) panel.hidden = expanded;
+  });
+  $("topicList").addEventListener("keydown", function(e){
+    var b = e.target.closest(".acc-btn");
+    if(!b) return;
+    var all = Array.prototype.slice.call($("topicList").querySelectorAll(".acc-btn"));
+    var i = all.indexOf(b);
+    if(e.key === "ArrowDown" && i < all.length-1){ e.preventDefault(); all[i+1].focus(); }
+    else if(e.key === "ArrowUp" && i > 0){ e.preventDefault(); all[i-1].focus(); }
+    else if(e.key === "Home"){ e.preventDefault(); all[0].focus(); }
+    else if(e.key === "End"){ e.preventDefault(); all[all.length-1].focus(); }
+  });
+
+  /* =========================================================
+     REORDER
+     ========================================================= */
+  function moveTopic(i, dir){
+    var j = i + dir;
+    if(j < 0 || j >= state.topics.length) return;
+    var tmp = state.topics[i]; state.topics[i] = state.topics[j]; state.topics[j] = tmp;
+    save(); render();
+    var b = document.querySelector('.acc-btn[data-topic="' + tmp.id + '"]');
+    if(b) b.focus();
+    toast("Moved “" + tmp.title + "” " + (dir < 0 ? "up" : "down") + ".");
+  }
+  function moveEntry(t, i, dir){
+    var j = i + dir;
+    if(j < 0 || j >= t.entries.length) return;
+    var tmp = t.entries[i]; t.entries[i] = t.entries[j]; t.entries[j] = tmp;
+    save(); render();
+    toast("Moved “" + tmp.q + "” " + (dir < 0 ? "up" : "down") + ".");
+  }
+
+  /* =========================================================
+     TOPIC + ENTRY DIALOGS
+     ========================================================= */
+  function openTopic(t){
+    editingTopicId = t ? t.id : null;
+    $("dlgTopicTitle").textContent = t ? "Rename topic" : "Add topic";
+    $("topicSave").textContent = t ? "Save changes" : "Save topic";
+    $("topicTitle").value = t ? t.title : "";
+    $("topicBlurb").value = t ? (t.blurb || "") : "";
+    $("topicErr").hidden = true;
+    openDlg($("dlgTopic"), $("topicTitle"));
+  }
+  $("formTopic").addEventListener("submit", function(e){
+    var title = $("topicTitle").value.trim();
+    if(!title){ e.preventDefault(); $("topicErr").textContent = "Enter a topic name."; $("topicErr").hidden = false; return; }
+    var blurb = $("topicBlurb").value.trim();
+    if(editingTopicId){
+      var t = state.topics.filter(function(x){ return x.id === editingTopicId; })[0];
+      if(t){ t.title = title; t.blurb = blurb; }
+      toast("Topic updated.");
+    }else{
+      state.topics.push({ id: uid(), title: title, blurb: blurb, entries: [] });
+      toast("Topic added. Now add answers to it.");
+    }
+    save();
+    setTimeout(function(){
+      render();
+      var b = document.querySelector('.acc-btn[data-topic="' + (editingTopicId || state.topics[state.topics.length-1].id) + '"]');
+      if(b) b.focus();
+      editingTopicId = null;
+    }, 20);
+  });
+
+  function openEntry(topicId, entry){
+    editingTopicId = topicId; editingEntry = entry;
+    $("dlgEntryTitle").textContent = entry ? "Edit answer" : "Add question and answer";
+    $("entrySave").textContent = entry ? "Save changes" : "Save answer";
+    $("entryQ").value = entry ? entry.q : "";
+    $("entryA").value = entry ? entry.a : "";
+    $("entryErr").hidden = true;
+    openDlg($("dlgEntry"), $("entryQ"));
+  }
+  $("formEntry").addEventListener("submit", function(e){
+    var q = $("entryQ").value.trim(), a = $("entryA").value.trim();
+    if(!q || !a){
+      e.preventDefault();
+      $("entryErr").textContent = "Both the question and the answer are required.";
+      $("entryErr").hidden = false; return;
+    }
+    var t = state.topics.filter(function(x){ return x.id === editingTopicId; })[0];
+    if(t){
+      if(editingEntry){ editingEntry.q = q; editingEntry.a = a; toast("Answer updated."); }
+      else { t.entries.push({ id: uid(), q: q, a: a }); toast("Answer added."); }
+      save();
+      var tid = t.id;
+      setTimeout(function(){
+        render();
+        var b = document.querySelector('.acc-btn[data-topic="' + tid + '"]');
+        if(b && b.getAttribute("aria-expanded") === "false") b.click();
+        if(b) b.focus();
+        editingEntry = null;
+      }, 20);
+    }
+  });
+
+  /* =========================================================
+     CONFIRM
+     ========================================================= */
+  function askConfirm(msg, fn){
+    confirmAction = fn;
+    $("confirmMsg").textContent = msg;
+    openDlg($("dlgConfirm"), $("confirmYes"));
+  }
+  $("formConfirm").addEventListener("submit", function(){
+    if(confirmAction){ confirmAction(); confirmAction = null; }
+  });
+
+  /* =========================================================
+     LOGIN / LOCK / PASSCODE
+     ========================================================= */
+  function promptLogin(){
+    $("loginPass").value = ""; $("loginErr").hidden = true;
+    openDlg($("dlgLogin"), $("loginPass"));
+  }
+  $("formLogin").addEventListener("submit", function(e){
+    var v = $("loginPass").value;
+    if(hash(v) !== state.pass){
+      e.preventDefault();
+      $("loginErr").hidden = false;
+      $("loginPass").value = ""; $("loginPass").focus();
+      return;
+    }
+    unlocked = true;
+    $("adminBar").hidden = false;
+    $("staffBtn").hidden = true;
+    $("brandSub").textContent = "Staff edit mode";
+    setTimeout(function(){ showMenu("Edit mode unlocked."); }, 20);
+  });
+  $("lockBtn").addEventListener("click", function(){
+    unlocked = false;
+    $("adminBar").hidden = true;
+    $("staffBtn").hidden = false;
+    $("brandSub").textContent = "Student self-help & staff knowledge base";
+    render();
+    toast("Edit mode locked.");
+    $("staffBtn").focus();
+  });
+  $("passBtn").addEventListener("click", function(){
+    $("passNew").value = ""; $("passConfirm").value = ""; $("passErr").hidden = true;
+    openDlg($("dlgPass"), $("passNew"));
+  });
+  $("formPass").addEventListener("submit", function(e){
+    var a = $("passNew").value, b = $("passConfirm").value;
+    if(a.length < 4){ e.preventDefault(); $("passErr").textContent = "Use at least 4 characters."; $("passErr").hidden = false; return; }
+    if(a !== b){ e.preventDefault(); $("passErr").textContent = "The two passcodes do not match."; $("passErr").hidden = false; return; }
+    state.pass = hash(a); save(); toast("Passcode changed on this computer.");
+  });
+
+  /* =========================================================
+     BACKUP / RESTORE / PRINT
+     ========================================================= */
+  function blobSave(name, data){
+    try{
+      var blob = new Blob([data], { type:"application/json" });
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = name;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000);
+      toast("Backup file downloaded.");
+    }catch(err){ toast("Could not download the backup from this screen."); }
+  }
+  $("exportBtn").addEventListener("click", function(){
+    var data = JSON.stringify({ topics: state.topics }, null, 2);
+    var name = "simlab-help-topics-" + new Date().toISOString().slice(0,10) + ".json";
+    if(window.claude && typeof window.claude.use === "function"){
+      window.claude.use("downloads").then(function(d){
+        if(d && typeof d.save === "function"){
+          d.save({ filename:name, data:data }).then(
+            function(){ toast("Backup saved."); },
+            function(){ toast("Backup was not saved."); }
+          );
+        } else { blobSave(name, data); }
+      }, function(){ blobSave(name, data); });
+    } else { blobSave(name, data); }
+  });
+  $("importBtn").addEventListener("click", function(){ $("importFile").click(); });
+  $("importFile").addEventListener("change", function(){
+    var f = this.files && this.files[0];
+    if(!f) return;
+    var r = new FileReader();
+    r.onload = function(){
+      try{
+        var d = JSON.parse(r.result);
+        if(!d || !Array.isArray(d.topics)) throw new Error("bad");
+        askConfirm("Replace all current topics with the " + d.topics.length + " topics in this file?", function(){
+          state.topics = d.topics.map(function(t){
+            return {
+              id: t.id || uid(),
+              title: String(t.title || "Untitled topic"),
+              blurb: String(t.blurb || ""),
+              entries: (Array.isArray(t.entries) ? t.entries : []).map(function(e){
+                return { id: e.id || uid(), q: String(e.q || ""), a: String(e.a || "") };
+              })
+            };
+          });
+          save(); render(); toast("Topics restored from backup.");
+        });
+      }catch(err){ toast("That file could not be read. Use a backup exported from this page."); }
+    };
+    r.readAsText(f);
+    this.value = "";
+  });
+  $("printBtn").addEventListener("click", function(){
+    Array.prototype.forEach.call(document.querySelectorAll(".acc-btn"), function(b){
+      b.setAttribute("aria-expanded","true");
+      var p = document.getElementById(b.getAttribute("aria-controls"));
+      if(p) p.hidden = false;
+    });
+    window.print();
+  });
+
+  /* =========================================================
+     WIRING
+     ========================================================= */
+  $("helpBtn").addEventListener("click", function(){ showMenu(); });
+  $("backBtn").addEventListener("click", showHelp);
+  $("homeBtn").addEventListener("click", showHelp);
+  $("staffBtn").addEventListener("click", promptLogin);
+  $("footStaff").addEventListener("click", function(e){ e.preventDefault(); promptLogin(); });
+  $("addTopicBtn").addEventListener("click", function(){ openTopic(null); });
+
+  var searchTimer = null;
+  $("searchInput").addEventListener("input", function(){
+    var v = this.value;
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(function(){ filter = v.trim(); render(); }, 180);
+  });
+
+  document.addEventListener("keydown", function(e){
+    if(e.key === "Escape" && !document.querySelector("dialog[open]") && !$("viewMenu").hidden){
+      showHelp();
+    }
+  });
+
+  render();
+  showHelp();
+})();
+</script>
+</body>
+</html>
