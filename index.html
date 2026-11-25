@@ -90,6 +90,27 @@
   .entry:first-of-type{border-top:0}
   .entry h4{margin:0 0 .35rem;font-size:1rem;color:var(--miner-blue)}
   .entry .answer{margin:0;white-space:pre-wrap}
+  .entry .answer a,.entry .links a{color:#0A3D91;font-weight:600}
+  .entry figure{margin:.85rem 0 0}
+  .entry figure img{max-width:100%;height:auto;display:block;border:2px solid var(--line);border-radius:10px}
+  .entry figcaption{font-size:.875rem;color:var(--ink-soft);margin-top:.35rem}
+  .embed{margin:.85rem 0 0;max-width:42rem;aspect-ratio:16/9;background:#000;border-radius:10px;overflow:hidden;border:2px solid var(--line)}
+  .embed iframe{width:100%;height:100%;border:0;display:block}
+  .entry video{margin:.85rem 0 0;max-width:42rem;width:100%;border:2px solid var(--line);border-radius:10px;display:block}
+  .entry .links{margin:.85rem 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:.4rem}
+  .entry .links li{display:flex;gap:.5rem;align-items:flex-start}
+  .entry .links li::before{content:"\2192";color:var(--miner-orange);font-weight:800;flex:0 0 auto}
+  .linkrow{display:flex;gap:.5rem;align-items:center;margin-bottom:.5rem}
+  .linkrow input{flex:1 1 8rem;min-height:2.75rem;font:inherit;padding:.5rem .7rem;border:2px solid var(--line);border-radius:8px}
+  .subhead{font-weight:700;color:var(--miner-blue);border-top:2px solid var(--line);padding-top:.9rem;margin:0}
+  .drop{border:3px dashed var(--line);border-radius:12px;background:#FAFBFD;padding:1.1rem;text-align:center;cursor:pointer}
+  .drop:hover,.drop.over{border-color:var(--miner-orange);background:#FFF6E8}
+  .drop p{margin:0;color:var(--ink-soft);font-size:.9375rem}
+  .drop strong{display:block;color:var(--miner-blue);font-size:1rem;margin-bottom:.2rem}
+  .shot{display:flex;gap:.75rem;align-items:flex-start;margin-top:.75rem;background:#fff;border:2px solid var(--line);border-radius:10px;padding:.6rem}
+  .shot img{width:7rem;height:5rem;object-fit:cover;border-radius:6px;border:1px solid var(--line);flex:0 0 auto}
+  .shot .meta{flex:1 1 auto;min-width:0;font-size:.875rem;color:var(--ink-soft)}
+  .entry figure img.pending{opacity:.45}
   .empty{background:#fff;border:2px dashed var(--line);border-radius:var(--radius);padding:1.5rem;text-align:center;color:var(--ink-soft)}
   .no-results{background:#FFF6E8;border:2px solid var(--miner-orange);border-radius:var(--radius);padding:1rem 1.25rem}
   .admin-bar{background:#FFF6E8;border:2px solid var(--miner-orange);border-radius:var(--radius);
@@ -128,6 +149,8 @@
     .topic,.topic-panel{border-color:#000}
     .topic-panel[hidden]{display:block!important}
     .acc-btn .chev{display:none}
+    .entry a[href^="https"]::after{content:" (" attr(href) ")";font-size:.8em;word-break:break-all}
+    .embed{display:none}
   }
 </style>
 </head>
@@ -254,7 +277,7 @@
   </form>
 </dialog>
 
-<dialog id="dlgEntry" aria-labelledby="dlgEntryTitle">
+<dialog id="dlgEntry" aria-labelledby="dlgEntryTitle" style="max-width:min(42rem,94vw)">
   <form method="dialog" id="formEntry">
     <div class="dlg-head"><h2 id="dlgEntryTitle">Add question and answer</h2></div>
     <div class="dlg-body">
@@ -265,8 +288,50 @@
       <div class="field">
         <label for="entryA">Answer</label>
         <textarea id="entryA" rows="7" required></textarea>
-        <p class="hint">Plain text. Line breaks are kept, so you can write short numbered steps.</p>
+        <p class="hint">Line breaks are kept, so you can write numbered steps. Paste a web address and it becomes a link, or write [words to show](https://address) to label it.</p>
       </div>
+
+      <p class="subhead">Picture (optional)</p>
+      <div class="drop" id="dropZone" role="button" tabindex="0" aria-describedby="dropHelp">
+        <strong>Paste a screenshot, or tap to choose a photo</strong>
+        <p id="dropHelp">Press Ctrl+V to paste, drag an image here, or tap to pick a file or take a photo. It is shrunk automatically.</p>
+      </div>
+      <input type="file" id="imgFile" accept="image/*" class="sr-only" tabindex="-1" aria-hidden="true">
+      <div class="shot" id="imgPreview" hidden>
+        <img id="imgThumb" alt="">
+        <div class="meta">
+          <p style="margin:0 0 .4rem" id="imgMeta"></p>
+          <button type="button" class="btn btn-danger btn-sm" id="imgRemove">Remove picture</button>
+        </div>
+      </div>
+      <div class="field">
+        <label for="entryImgAlt">Describe the picture</label>
+        <input type="text" id="entryImgAlt" maxlength="200" placeholder="e.g. HDMI port on the back of the projector">
+        <p class="hint">Required when you add a picture, so students using a screen reader get the same information.</p>
+      </div>
+      <details>
+        <summary style="cursor:pointer;font-weight:650;color:var(--miner-blue);min-height:2.5rem;display:flex;align-items:center">Use a picture already on the web instead</summary>
+        <div class="field" style="margin-top:.6rem">
+          <label for="entryImg">Picture address</label>
+          <input type="text" id="entryImg" placeholder="https://... or img/filename.jpg">
+        </div>
+      </details>
+
+      <p class="subhead">Video (optional)</p>
+      <div class="field">
+        <label for="entryVid">Video address</label>
+        <input type="text" id="entryVid" placeholder="https://youtu.be/... or a .mp4 address">
+        <p class="hint">YouTube, Vimeo, or a direct .mp4 link. Turn captions on for any video you post.</p>
+      </div>
+      <div class="field">
+        <label for="entryVidTitle">Video title</label>
+        <input type="text" id="entryVidTitle" maxlength="140" placeholder="e.g. Resetting the room projector">
+      </div>
+
+      <p class="subhead">Extra links (optional)</p>
+      <div id="linkRows"></div>
+      <button type="button" class="btn btn-secondary btn-sm" id="addLinkBtn">+ Add a link</button>
+
       <p class="err" id="entryErr" role="alert" hidden></p>
     </div>
     <div class="dlg-foot">
@@ -388,7 +453,19 @@ function normalize(arr){
     entries: (Array.isArray(t && t.entries) ? t.entries : []).map(e => ({
       id: e && e.id ? String(e.id) : uid(),
       q: String((e && e.q) || ""),
-      a: String((e && e.a) || "")
+      a: String((e && e.a) || ""),
+      image: (e && e.image && (e.image.url || e.image.ref || e.image.data))
+        ? { url:  e.image.url  ? String(e.image.url)  : "",
+            ref:  e.image.ref  ? String(e.image.ref)  : "",
+            data: e.image.data ? String(e.image.data) : "",
+            alt:  String(e.image.alt || "") } : null,
+      video: (e && e.video && e.video.url)
+        ? { url:String(e.video.url), title:String(e.video.title || "") } : null,
+      links: Array.isArray(e && e.links)
+        ? e.links.slice(0,8)
+            .map(l => ({ label:String((l && l.label) || ""), url:String((l && l.url) || "") }))
+            .filter(l => l.url)
+        : []
     }))
   }));
 }
@@ -416,7 +493,8 @@ function updateAuthUI(){
   $("signOutBtn").textContent = inCloud ? "Sign out" : "Lock";
   $("whoChip").hidden    = !unlocked;
   $("whoText").textContent = who;
-  $("staffBtn").textContent = inCloud ? "Staff login" : "Staff login";
+  const foot = $("footStaff");
+  foot.textContent = unlocked ? (inCloud ? "Sign out" : "Lock edit mode") : "Staff sign in";
   $("adminBar").hidden   = !unlocked;
   $("adminWho").textContent = unlocked
     ? (inCloud && user ? ("Signed in as " + (user.email || "staff")) : "Edit mode unlocked on this computer.")
@@ -553,6 +631,177 @@ async function persist(message){
   return true;
 }
 
+/* ---------------- pasted pictures ----------------
+   A pasted screenshot is shrunk in the browser, then stored as its own
+   Firestore document and referenced by id. Keeping pictures out of the
+   main topics document means the 1 MB-per-document limit applies to each
+   picture on its own, not to all of them added together. */
+const IMG_MAX_EDGE  = 1400;
+const IMG_MAX_BYTES = 700000;      // safely under the 1 MB document limit
+const imgCache = new Map();        // id -> data URL, fetched once per visit
+let pendingImage = null;           // a newly pasted picture, not saved yet
+
+function readFileAsImage(file){
+  return new Promise((resolve, reject) => {
+    if(!file || !/^image\//.test(file.type)) return reject(new Error("not-image"));
+    const fr = new FileReader();
+    fr.onerror = () => reject(new Error("read-failed"));
+    fr.onload = () => {
+      const im = new Image();
+      im.onload = () => resolve(im);
+      im.onerror = () => reject(new Error("decode-failed"));
+      im.src = fr.result;
+    };
+    fr.readAsDataURL(file);
+  });
+}
+async function shrinkImage(file){
+  const im = await readFileAsImage(file);
+  let w = im.naturalWidth || im.width, h = im.naturalHeight || im.height;
+  const scale = Math.min(1, IMG_MAX_EDGE / Math.max(w, h));
+  w = Math.max(1, Math.round(w * scale));
+  h = Math.max(1, Math.round(h * scale));
+  const cv = document.createElement("canvas");
+  cv.width = w; cv.height = h;
+  const cx = cv.getContext("2d");
+  cx.fillStyle = "#FFFFFF";          // flatten transparency so it is not black
+  cx.fillRect(0, 0, w, h);
+  cx.drawImage(im, 0, 0, w, h);
+  let q = 0.82, out = cv.toDataURL("image/jpeg", q);
+  while(out.length > IMG_MAX_BYTES && q > 0.35){
+    q -= 0.12;
+    out = cv.toDataURL("image/jpeg", q);
+  }
+  if(out.length > IMG_MAX_BYTES){
+    const cv2 = document.createElement("canvas");
+    cv2.width = Math.round(w * 0.6); cv2.height = Math.round(h * 0.6);
+    const c2 = cv2.getContext("2d");
+    c2.fillStyle = "#FFFFFF"; c2.fillRect(0, 0, cv2.width, cv2.height);
+    c2.drawImage(im, 0, 0, cv2.width, cv2.height);
+    out = cv2.toDataURL("image/jpeg", 0.7);
+  }
+  if(out.length > IMG_MAX_BYTES) throw new Error("too-big");
+  return { dataUrl: out, bytes: out.length, w, h };
+}
+function showPending(p){
+  pendingImage = p;
+  $("imgPreview").hidden = !p;
+  if(p){
+    $("imgThumb").src = p.dataUrl;
+    $("imgMeta").textContent = "Picture ready \u2014 about " + Math.round(p.bytes / 1024) + " KB";
+    $("entryImgAlt").focus();
+  }
+}
+async function handleImageFile(file){
+  try{
+    toast("Shrinking the picture\u2026");
+    showPending(await shrinkImage(file));
+    toast("Picture added. Now describe it.");
+  }catch(err){
+    toast(err.message === "too-big"
+      ? "That picture is too large even after shrinking. Try a screenshot of just the part that matters."
+      : "That file could not be read as a picture.");
+  }
+}
+/* store + fetch picture documents */
+async function saveImageDoc(dataUrl){
+  if(mode !== "cloud") return null;
+  const id = uid();
+  await fb.fsMod.setDoc(fb.fsMod.doc(fb.db, "help_images", id), {
+    data: dataUrl,
+    createdAt: fb.fsMod.serverTimestamp(),
+    createdBy: (user && user.email) || "staff"
+  });
+  imgCache.set(id, dataUrl);
+  return id;
+}
+async function loadImageDoc(id){
+  if(imgCache.has(id)) return imgCache.get(id);
+  if(mode !== "cloud") return null;
+  try{
+    const snap = await fb.fsMod.getDoc(fb.fsMod.doc(fb.db, "help_images", id));
+    const data = snap.exists() ? snap.data().data : null;
+    if(data) imgCache.set(id, data);
+    return data;
+  }catch(err){ return null; }
+}
+async function deleteImageDoc(id){
+  if(mode !== "cloud" || !id) return;
+  try{ await fb.fsMod.deleteDoc(fb.fsMod.doc(fb.db, "help_images", id)); }catch(err){}
+  imgCache.delete(id);
+}
+
+/* ---------------- safe media helpers ---------------- */
+function safeUrl(u){
+  const v = String(u || "").trim();
+  if(!v) return null;
+  if(/^https:\/\//i.test(v)) return v;                                   // external, TLS only
+  if(/^[A-Za-z0-9][\w.-]*(\/[\w.-]+)*$/.test(v) && !v.includes("..")) return v; // file in this repo
+  return null;
+}
+function makeLink(href, label){
+  const a = document.createElement("a");
+  a.href = href;
+  a.textContent = label || href;
+  if(/^https:\/\//i.test(href)){
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    const sr = document.createElement("span");
+    sr.className = "sr-only";
+    sr.textContent = " (opens in a new tab)";
+    a.appendChild(sr);
+  }
+  return a;
+}
+/* Turns [label](https://x) and bare https:// addresses into links.
+   Everything else stays plain text, so nothing a staff member types can
+   become markup on a student's screen. */
+function renderAnswer(container, text){
+  const re = /\[([^\]]{1,120})\]\((https:\/\/[^\s)]+)\)|(https:\/\/[^\s<>"']+)/g;
+  let last = 0, m;
+  while((m = re.exec(text)) !== null){
+    if(m.index > last) container.appendChild(document.createTextNode(text.slice(last, m.index)));
+    const href = safeUrl(m[2] || m[3]);
+    if(href) container.appendChild(makeLink(href, m[1] || m[3]));
+    else container.appendChild(document.createTextNode(m[0]));
+    last = re.lastIndex;
+  }
+  if(last < text.length) container.appendChild(document.createTextNode(text.slice(last)));
+}
+function videoNode(video){
+  const url = safeUrl(video.url);
+  if(!url) return null;
+  const title = video.title || "Video";
+  let m;
+  if((m = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{6,})/))){
+    return embedFrame("https://www.youtube-nocookie.com/embed/" + m[1], title);
+  }
+  if((m = url.match(/vimeo\.com\/(?:video\/)?(\d+)/))){
+    return embedFrame("https://player.vimeo.com/video/" + m[1], title);
+  }
+  if(/\.(mp4|webm|ogg|mov)(\?|$)/i.test(url)){
+    const v = document.createElement("video");
+    v.controls = true; v.preload = "metadata"; v.src = url;
+    v.setAttribute("aria-label", title);
+    return v;
+  }
+  const p = document.createElement("p");
+  p.style.margin = ".85rem 0 0";
+  p.appendChild(makeLink(url, title));
+  return p;
+}
+function embedFrame(src, title){
+  const d = document.createElement("div");
+  d.className = "embed";
+  const f = document.createElement("iframe");
+  f.src = src; f.title = title; f.loading = "lazy";
+  f.allow = "accelerometer; clipboard-write; encrypted-media; picture-in-picture";
+  f.setAttribute("allowfullscreen", "");
+  f.setAttribute("referrerpolicy", "strict-origin-when-cross-origin");
+  d.appendChild(f);
+  return d;
+}
+
 /* ============================================================
    RENDER
    ============================================================ */
@@ -665,8 +914,54 @@ function render(){
       const art = document.createElement("article");
       art.className = "entry";
       const h4 = document.createElement("h4"); h4.textContent = e.q;
-      const p = document.createElement("p"); p.className = "answer"; p.textContent = e.a;
+      const p = document.createElement("p"); p.className = "answer";
+      renderAnswer(p, e.a);
       art.appendChild(h4); art.appendChild(p);
+
+      if(e.image && (e.image.data || e.image.ref || safeUrl(e.image.url))){
+        const fig = document.createElement("figure");
+        const img = document.createElement("img");
+        img.alt = e.image.alt || "";
+        img.loading = "lazy"; img.decoding = "async";
+        if(e.image.data){
+          img.src = e.image.data;
+        }else if(e.image.ref){
+          const cached = imgCache.get(e.image.ref);
+          if(cached){ img.src = cached; }
+          else{
+            img.classList.add("pending");
+            loadImageDoc(e.image.ref).then(d => {
+              if(d){ img.src = d; img.classList.remove("pending"); }
+              else { fig.remove(); }
+            });
+          }
+        }else{
+          img.src = safeUrl(e.image.url);
+        }
+        fig.appendChild(img);
+        if(e.image.alt){
+          const cap = document.createElement("figcaption");
+          cap.textContent = e.image.alt;
+          fig.appendChild(cap);
+        }
+        art.appendChild(fig);
+      }
+      if(e.video && e.video.url){
+        const v = videoNode(e.video);
+        if(v) art.appendChild(v);
+      }
+      if(e.links && e.links.length){
+        const ul = document.createElement("ul");
+        ul.className = "links";
+        e.links.forEach(l => {
+          const href = safeUrl(l.url);
+          if(!href) return;
+          const li = document.createElement("li");
+          li.appendChild(makeLink(href, l.label || href));
+          ul.appendChild(li);
+        });
+        if(ul.children.length) art.appendChild(ul);
+      }
 
       if(unlocked){
         const et = document.createElement("div");
@@ -674,6 +969,7 @@ function render(){
         et.appendChild(textBtn("Edit", "btn btn-secondary btn-sm", "Edit answer: " + e.q, () => openEntry(t.id, e)));
         et.appendChild(textBtn("Delete", "btn btn-danger btn-sm", "Delete answer: " + e.q, () => {
           askConfirm("Delete the answer “" + e.q + "”? This removes it from every screen in the lab.", async () => {
+            if(e.image && e.image.ref) deleteImageDoc(e.image.ref);
             t.entries = t.entries.filter(x => x.id !== e.id);
             render();
             await persist("Answer deleted.");
@@ -693,6 +989,7 @@ function render(){
       row.appendChild(textBtn("Rename topic", "btn btn-secondary btn-sm", "Rename topic " + t.title, () => openTopic(t)));
       row.appendChild(textBtn("Delete topic", "btn btn-danger btn-sm", "Delete topic " + t.title, () => {
         askConfirm("Delete the topic “" + t.title + "” and all " + t.entries.length + " answers in it? This removes it from every screen in the lab.", async () => {
+          t.entries.forEach(en => { if(en.image && en.image.ref) deleteImageDoc(en.image.ref); });
           topics = topics.filter(x => x.id !== t.id);
           render();
           await persist("Topic deleted.");
@@ -777,35 +1074,179 @@ $("formTopic").addEventListener("submit", (e) => {
   }, 20);
 });
 
+function addLinkRow(label, url){
+  const rows = $("linkRows");
+  if(rows.children.length >= 8) return;
+  const i = rows.children.length + 1;
+  const row = document.createElement("div");
+  row.className = "linkrow";
+  const a = document.createElement("input");
+  a.type = "text"; a.placeholder = "What it says"; a.value = label || "";
+  a.setAttribute("aria-label", "Link " + i + " wording");
+  const b = document.createElement("input");
+  b.type = "text"; b.placeholder = "https://..."; b.value = url || "";
+  b.setAttribute("aria-label", "Link " + i + " address");
+  const x = document.createElement("button");
+  x.type = "button"; x.className = "icon-btn";
+  x.innerHTML = '<span aria-hidden="true">\u00d7</span>';
+  x.setAttribute("aria-label", "Remove link " + i);
+  x.addEventListener("click", () => { row.remove(); a.value = ""; b.value = ""; });
+  row.append(a, b, x);
+  rows.appendChild(row);
+  return row;
+}
+$("addLinkBtn").addEventListener("click", () => {
+  const r = addLinkRow("", "");
+  if(r) r.querySelector("input").focus();
+  else toast("Eight links is the limit for one answer.");
+});
+
+const dz = $("dropZone");
+dz.addEventListener("click", () => $("imgFile").click());
+dz.addEventListener("keydown", (e) => {
+  if(e.key === "Enter" || e.key === " "){ e.preventDefault(); $("imgFile").click(); }
+});
+dz.addEventListener("dragover", (e) => { e.preventDefault(); dz.classList.add("over"); });
+dz.addEventListener("dragleave", () => dz.classList.remove("over"));
+dz.addEventListener("drop", (e) => {
+  e.preventDefault(); dz.classList.remove("over");
+  const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+  if(f) handleImageFile(f);
+});
+$("imgFile").addEventListener("change", function(){
+  const f = this.files && this.files[0];
+  this.value = "";
+  if(f) handleImageFile(f);
+});
+$("dlgEntry").addEventListener("paste", (e) => {
+  const items = (e.clipboardData && e.clipboardData.items) || [];
+  for(const it of items){
+    if(it.kind === "file" && /^image\//.test(it.type)){
+      const f = it.getAsFile();
+      if(f){ e.preventDefault(); handleImageFile(f); return; }
+    }
+  }
+});
+$("imgRemove").addEventListener("click", () => {
+  showPending(null);
+  $("entryImg").value = "";
+  $("imgThumb").removeAttribute("src");
+  toast("Picture removed. Save the answer to apply it.");
+  dz.focus();
+});
+
 function openEntry(topicId, entry){
   editingTopicId = topicId; editingEntry = entry;
   $("dlgEntryTitle").textContent = entry ? "Edit answer" : "Add question and answer";
   $("entrySave").textContent = entry ? "Save changes" : "Save answer";
   $("entryQ").value = entry ? entry.q : "";
   $("entryA").value = entry ? entry.a : "";
+  $("entryImg").value      = entry && entry.image ? (entry.image.url || "") : "";
+  $("entryImgAlt").value   = entry && entry.image ? (entry.image.alt || "") : "";
+  pendingImage = null;
+  $("imgPreview").hidden = true;
+  $("imgThumb").removeAttribute("src");
+  if(entry && entry.image && (entry.image.data || entry.image.ref)){
+    const existing = entry.image.data || imgCache.get(entry.image.ref);
+    if(existing){
+      $("imgThumb").src = existing;
+      $("imgMeta").textContent = "Picture already on this answer";
+      $("imgPreview").hidden = false;
+    }else{
+      $("imgMeta").textContent = "Picture already on this answer";
+      $("imgPreview").hidden = false;
+      loadImageDoc(entry.image.ref).then(d => { if(d) $("imgThumb").src = d; });
+    }
+  }
+  $("entryVid").value      = entry && entry.video ? entry.video.url : "";
+  $("entryVidTitle").value = entry && entry.video ? (entry.video.title || "") : "";
+  $("linkRows").textContent = "";
+  if(entry && entry.links) entry.links.forEach(l => addLinkRow(l.label, l.url));
   $("entryErr").hidden = true;
   openDlg($("dlgEntry"), $("entryQ"));
 }
-$("formEntry").addEventListener("submit", (e) => {
+$("formEntry").addEventListener("submit", async (e) => {
+  e.preventDefault();                       // we close the dialog ourselves once saved
   const q = $("entryQ").value.trim(), a = $("entryA").value.trim();
-  if(!q || !a){
-    e.preventDefault();
-    $("entryErr").textContent = "Both the question and the answer are required.";
-    $("entryErr").hidden = false; return;
-  }
+  const fail = (msg, el) => {
+    $("entryErr").textContent = msg; $("entryErr").hidden = false;
+    if(el) el.focus();
+    return false;
+  };
+  if(!q || !a) return fail("Both the question and the answer are required.", $("entryQ"));
+
+  const imgUrl = $("entryImg").value.trim(), imgAlt = $("entryImgAlt").value.trim();
+  if(imgUrl && !safeUrl(imgUrl))
+    return fail("The picture address must start with https:// or be a file in this site, like img/photo.jpg", $("entryImg"));
+
+  const keptImage = (editingEntry && editingEntry.image && !pendingImage && $("imgPreview").hidden === false)
+    ? editingEntry.image : null;
+  const hasPicture = !!(pendingImage || imgUrl || keptImage);
+  if(hasPicture && !imgAlt)
+    return fail("Describe the picture so students using a screen reader get the same information.", $("entryImgAlt"));
+
+  const vidUrl = $("entryVid").value.trim();
+  if(vidUrl && !safeUrl(vidUrl))
+    return fail("The video address must start with https://", $("entryVid"));
+
+  const links = [];
+  Array.from($("linkRows").children).forEach(row => {
+    const ins = row.querySelectorAll("input");
+    const label = ins[0].value.trim(), url = ins[1].value.trim();
+    if(url) links.push({ label: label || url, url });
+  });
+  const badLink = links.find(l => !safeUrl(l.url));
+  if(badLink) return fail("This link address must start with https:// \u2014 " + badLink.url, $("linkRows").querySelector("input"));
+
   const t = topics.find(x => x.id === editingTopicId);
   if(!t) return;
-  if(editingEntry){ editingEntry.q = q; editingEntry.a = a; }
-  else { t.entries.push({ id:uid(), q, a }); }
-  const tid = t.id, wasEdit = !!editingEntry;
+
+  // Work out the picture field: a newly pasted one, an address, or what was already there.
+  let image = null;
+  const oldRef = editingEntry && editingEntry.image ? editingEntry.image.ref : "";
+  $("entrySave").disabled = true;
+  try{
+    if(pendingImage){
+      if(mode === "cloud"){
+        toast("Saving the picture\u2026");
+        const ref = await saveImageDoc(pendingImage.dataUrl);
+        image = { url:"", ref, data:"", alt:imgAlt };
+      }else{
+        image = { url:"", ref:"", data:pendingImage.dataUrl, alt:imgAlt };
+      }
+      if(oldRef) deleteImageDoc(oldRef);
+    }else if(imgUrl){
+      image = { url:imgUrl, ref:"", data:"", alt:imgAlt };
+      if(oldRef) deleteImageDoc(oldRef);
+    }else if(keptImage){
+      image = Object.assign({}, keptImage, { alt:imgAlt });
+    }else if(oldRef){
+      deleteImageDoc(oldRef);
+    }
+  }catch(err){
+    $("entrySave").disabled = false;
+    return fail("The picture could not be saved. Check the connection and try again.");
+  }
+  $("entrySave").disabled = false;
+
+  const media = {
+    image,
+    video: vidUrl ? { url:vidUrl, title: $("entryVidTitle").value.trim() || q } : null,
+    links
+  };
+  const wasEdit = !!editingEntry;
+  if(editingEntry){ Object.assign(editingEntry, { q, a }, media); }
+  else { t.entries.push(Object.assign({ id:uid(), q, a }, media)); }
+  const tid = t.id;
   editingEntry = null;
-  setTimeout(async () => {
-    render();
-    const b = document.querySelector('.acc-btn[data-topic="' + tid + '"]');
-    if(b && b.getAttribute("aria-expanded") === "false") b.click();
-    if(b) b.focus();
-    await persist(wasEdit ? "Answer updated." : "Answer added.");
-  }, 20);
+  pendingImage = null;
+  closeDlg($("dlgEntry"));
+
+  render();
+  const b = document.querySelector('.acc-btn[data-topic="' + tid + '"]');
+  if(b && b.getAttribute("aria-expanded") === "false") b.click();
+  if(b) b.focus();
+  await persist(wasEdit ? "Answer updated." : "Answer added.");
 });
 
 /* ---------------- confirm ---------------- */
@@ -1018,7 +1459,10 @@ $("helpBtn").addEventListener("click", () => showMenu());
 $("backBtn").addEventListener("click", showHelp);
 $("homeBtn").addEventListener("click", showHelp);
 $("staffBtn").addEventListener("click", promptLogin);
-$("footStaff").addEventListener("click", (e) => { e.preventDefault(); promptLogin(); });
+$("footStaff").addEventListener("click", (e) => {
+  e.preventDefault();
+  if(unlocked) doSignOut(); else promptLogin();
+});
 $("addTopicBtn").addEventListener("click", () => openTopic(null));
 
 let searchTimer = null;
