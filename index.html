@@ -13,6 +13,9 @@
     --line:#C9CED8; --focus:#FF8200; --radius:14px; --tap:3rem;
   }
   *{box-sizing:border-box}
+  /* The hidden attribute must beat any display rule below, or anything
+     styled display:flex / inline-flex stays on screen while "hidden". */
+  [hidden]{display:none !important}
   html{-webkit-text-size-adjust:100%}
   body{margin:0;background:var(--paper);color:var(--ink);
     font-family:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
