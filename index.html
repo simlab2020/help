@@ -37,6 +37,10 @@
   .status.live{color:#0B3D16;background:#D8F3DE;border-color:#1B5E20}
   .status.offline{color:#6B3600;background:#FFF0D6;border-color:#B36A00}
   .status.localonly{color:#2A3648;background:#E3E8F0;border-color:#4A5768}
+  .who{display:inline-flex;align-items:center;gap:.45rem;font-size:.8125rem;font-weight:700;margin:0;
+    border-radius:999px;padding:.3rem .7rem;border:2px solid #FFC27A;color:#FFE4C2;background:#0B2F61;
+    white-space:nowrap;max-width:15rem;overflow:hidden;text-overflow:ellipsis}
+  .who .dot{width:.6rem;height:.6rem;border-radius:50%;background:#7CE495;flex:0 0 auto}
   .main{flex:1 1 auto;padding:clamp(1rem,4vw,2.5rem);width:100%;max-width:62rem;margin-inline:auto}
   footer.site{background:var(--miner-blue-700);color:#E6EBF3;font-size:.875rem;padding:1rem clamp(1rem,4vw,2rem);text-align:center}
   .btn{font:inherit;font-weight:650;cursor:pointer;border-radius:10px;min-height:var(--tap);
@@ -142,7 +146,9 @@
   <p class="status localonly" id="syncStatus" role="status" aria-live="polite">
     <span class="dot" aria-hidden="true"></span><span id="syncText">Starting&hellip;</span>
   </p>
+  <p class="who" id="whoChip" hidden><span class="dot" aria-hidden="true"></span><span id="whoText"></span></p>
   <button type="button" class="btn btn-ghost btn-sm" id="staffBtn">Staff login</button>
+  <button type="button" class="btn btn-ghost btn-sm" id="signOutBtn" hidden>Sign out</button>
   <button type="button" class="btn btn-ghost btn-sm" id="homeBtn" hidden>Home</button>
 </header>
 
@@ -179,6 +185,7 @@
       <button type="button" class="btn btn-secondary btn-sm" id="exportBtn">Export backup</button>
       <button type="button" class="btn btn-secondary btn-sm" id="importBtn">Import backup</button>
       <button type="button" class="btn btn-secondary btn-sm" id="printBtn">Print all</button>
+      <button type="button" class="btn btn-secondary btn-sm" id="passBtn">Change password</button>
       <button type="button" class="btn btn-danger btn-sm" id="lockBtn">Sign out</button>
       <input type="file" id="importFile" accept=".json,application/json" class="sr-only" tabindex="-1" aria-hidden="true">
     </div>
@@ -269,6 +276,32 @@
   </form>
 </dialog>
 
+<dialog id="dlgPass" aria-labelledby="dlgPassTitle">
+  <form method="dialog" id="formPass">
+    <div class="dlg-head"><h2 id="dlgPassTitle">Change password</h2></div>
+    <div class="dlg-body">
+      <div class="field">
+        <label for="passCur">Current password</label>
+        <input type="password" id="passCur" required autocomplete="current-password">
+      </div>
+      <div class="field">
+        <label for="passNew">New password</label>
+        <input type="password" id="passNew" required autocomplete="new-password">
+        <p class="hint" id="passHint">At least 6 characters.</p>
+      </div>
+      <div class="field">
+        <label for="passConfirm">Repeat new password</label>
+        <input type="password" id="passConfirm" required autocomplete="new-password">
+      </div>
+      <p class="err" id="passErr" role="alert" hidden></p>
+    </div>
+    <div class="dlg-foot">
+      <button type="button" class="btn btn-secondary" data-close>Cancel</button>
+      <button type="submit" class="btn btn-primary" id="passSubmit">Save password</button>
+    </div>
+  </form>
+</dialog>
+
 <dialog id="dlgConfirm" aria-labelledby="dlgConfirmTitle">
   <form method="dialog" id="formConfirm">
     <div class="dlg-head"><h2 id="dlgConfirmTitle">Please confirm</h2></div>
@@ -288,15 +321,15 @@
    it works, but edits stay on this computer only.
    ============================================================ */
 const FIREBASE_CONFIG = {
-  apiKey: "AIzaSyAzBv-uUqNb8p75ozruwobxPhBt-Ey9IPQ",
-  authDomain: "simlab-help.firebaseapp.com",
-  projectId: "simlab-help",
-  storageBucket: "simlab-help.firebasestorage.app",
+  apiKey:            "AIzaSyAzBv-uUqNb8p75ozruwobxPhBt-Ey9IPQ",
+  authDomain:        "simlab-help.firebaseapp.com",
+  projectId:         "simlab-help",
+  storageBucket:     "simlab-help.firebasestorage.app",
   messagingSenderId: "344331019264",
-  appId: "1:344331019264:web:ae6a62b13347519007e4e5"
+  appId:             "1:344331019264:web:ae6a62b13347519007e4e5"
 };
 /* Local-mode passcode, used only when Firebase is not configured. */
-const LOCAL_PASSCODE = "minerlab";
+const LOCAL_PASSCODE = "Utep2020";
 /* ============================================================ */
 
 const SDK = "https://www.gstatic.com/firebasejs/10.12.5/";
@@ -375,6 +408,23 @@ function setStatus(kind, text){
   el.className = "status " + kind;
   $("syncText").textContent = text;
 }
+function updateAuthUI(){
+  const inCloud = mode === "cloud";
+  const who = unlocked ? (inCloud && user ? (user.email || "Staff") : "Staff \u2014 this computer") : "";
+  $("staffBtn").hidden   = unlocked;
+  $("signOutBtn").hidden = !unlocked;
+  $("signOutBtn").textContent = inCloud ? "Sign out" : "Lock";
+  $("whoChip").hidden    = !unlocked;
+  $("whoText").textContent = who;
+  $("staffBtn").textContent = inCloud ? "Staff login" : "Staff login";
+  $("adminBar").hidden   = !unlocked;
+  $("adminWho").textContent = unlocked
+    ? (inCloud && user ? ("Signed in as " + (user.email || "staff")) : "Edit mode unlocked on this computer.")
+    : "";
+  $("lockBtn").textContent = inCloud ? "Sign out" : "Lock edit mode";
+  $("brandSub").textContent = unlocked ? "Staff edit mode" : "Student self-help & staff knowledge base";
+  $("seedBtn").hidden = !(unlocked && !docExists);
+}
 function showBanner(text){
   $("modeBannerText").textContent = text;
   $("modeBanner").hidden = !text;
@@ -426,11 +476,7 @@ async function startCloud(){
   authMod.onAuthStateChanged(auth, (u) => {
     user = u;
     unlocked = !!u;
-    $("adminBar").hidden = !unlocked;
-    $("staffBtn").hidden = unlocked;
-    $("adminWho").textContent = unlocked ? ("Signed in as " + (u.email || "staff")) : "Staff edit mode is on.";
-    $("brandSub").textContent = unlocked ? "Staff edit mode" : "Student self-help & staff knowledge base";
-    $("seedBtn").hidden = !(unlocked && !docExists);
+    updateAuthUI();
     render();
   });
 
@@ -473,7 +519,7 @@ function startLocal(reason){
   $("emailField").hidden = true;
   $("loginEmail").required = false;
   $("passLabel").textContent = "Staff passcode";
-  $("lockBtn").textContent = "Lock edit mode";
+  updateAuthUI();
 }
 
 function saveLocal(){
@@ -780,7 +826,7 @@ function promptLogin(){
 }
 $("formLogin").addEventListener("submit", async (e) => {
   if(mode === "local"){
-    if($("loginPass").value !== LOCAL_PASSCODE){
+    if($("loginPass").value !== localPass()){
       e.preventDefault();
       $("loginErr").textContent = "That passcode did not match.";
       $("loginErr").hidden = false;
@@ -788,9 +834,7 @@ $("formLogin").addEventListener("submit", async (e) => {
       return;
     }
     unlocked = true;
-    $("adminBar").hidden = false;
-    $("staffBtn").hidden = true;
-    $("brandSub").textContent = "Staff edit mode";
+    updateAuthUI();
     setTimeout(() => showMenu("Edit mode unlocked."), 20);
     return;
   }
@@ -822,19 +866,71 @@ $("formLogin").addEventListener("submit", async (e) => {
     $("loginSubmit").disabled = false;
   }
 });
-$("lockBtn").addEventListener("click", async () => {
+async function doSignOut(){
   if(mode === "cloud" && fb){
     try{ await fb.authMod.signOut(fb.auth); }catch(e){}
     toast("Signed out.");
   }else{
     unlocked = false;
-    $("adminBar").hidden = true;
-    $("staffBtn").hidden = false;
-    $("brandSub").textContent = "Student self-help & staff knowledge base";
+    updateAuthUI();
     render();
     toast("Edit mode locked.");
   }
   $("staffBtn").focus();
+}
+$("lockBtn").addEventListener("click", doSignOut);
+$("signOutBtn").addEventListener("click", doSignOut);
+
+/* ---------------- change password ---------------- */
+const PASS_KEY = "simlabHelp.pass.v2";
+function localPass(){
+  try{ return localStorage.getItem(PASS_KEY) || LOCAL_PASSCODE; }catch(e){ return LOCAL_PASSCODE; }
+}
+$("passBtn").addEventListener("click", () => {
+  $("passCur").value = ""; $("passNew").value = ""; $("passConfirm").value = "";
+  $("passErr").hidden = true;
+  $("dlgPassTitle").textContent = mode === "cloud" ? "Change your password" : "Change the staff passcode";
+  $("passHint").textContent = mode === "cloud"
+    ? "At least 6 characters. This changes your own staff account."
+    : "At least 4 characters. Local mode only \u2014 this computer.";
+  openDlg($("dlgPass"), $("passCur"));
+});
+$("formPass").addEventListener("submit", async (e) => {
+  const cur = $("passCur").value, nw = $("passNew").value, cf = $("passConfirm").value;
+  const fail = (msg) => { $("passErr").textContent = msg; $("passErr").hidden = false; };
+
+  if(mode === "local"){
+    if(cur !== localPass()){ e.preventDefault(); fail("The current passcode is not right."); return; }
+    if(nw.length < 4){ e.preventDefault(); fail("Use at least 4 characters."); return; }
+    if(nw !== cf){ e.preventDefault(); fail("The two new passcodes do not match."); return; }
+    try{ localStorage.setItem(PASS_KEY, nw); toast("Passcode changed on this computer."); }
+    catch(err){ toast("Could not save the new passcode on this computer."); }
+    return;
+  }
+
+  e.preventDefault();
+  if(nw.length < 6){ fail("Firebase requires at least 6 characters."); return; }
+  if(nw !== cf){ fail("The two new passwords do not match."); return; }
+  if(!user){ fail("You are signed out. Sign in again first."); return; }
+  $("passSubmit").disabled = true;
+  try{
+    const cred = fb.authMod.EmailAuthProvider.credential(user.email, cur);
+    await fb.authMod.reauthenticateWithCredential(user, cred);
+    await fb.authMod.updatePassword(user, nw);
+    closeDlg($("dlgPass"));
+    toast("Password changed. Use the new one next time you sign in.");
+  }catch(err){
+    const code = (err && err.code) || "";
+    fail(code.includes("invalid-credential") || code.includes("wrong-password")
+      ? "The current password is not right."
+      : code.includes("weak-password")
+        ? "That password is too weak. Use at least 6 characters."
+        : code.includes("too-many-requests")
+          ? "Too many tries. Wait a minute and try again."
+          : "Could not change the password. " + code);
+  }finally{
+    $("passSubmit").disabled = false;
+  }
 });
 
 /* ---------------- seed / backup / print ---------------- */
@@ -941,6 +1037,7 @@ window.addEventListener("offline", () => { if(mode === "cloud") setStatus("offli
 (async function boot(){
   const cached = cacheRead();
   if(cached) topics = normalize(cached.topics);
+  updateAuthUI();
   render();
   showHelp();
 
